@@ -118,6 +118,42 @@ defmodule UAInspector.Util.Version do
 
       iex> to_semver("1.2.3.-4")
       "1.2.3"
+
+      iex> to_semver("1.2.3-04")
+      "1.2.3"
+
+      iex> to_semver("1.2.3-04", 4)
+      "1.2.3-4"
+
+      iex> to_semver("1.2.3-004", 4)
+      "1.2.3-4"
+
+      iex> to_semver("1.2.3-000", 4)
+      "1.2.3-0"
+
+      iex> to_semver("1.2.3.04")
+      "1.2.3"
+
+      iex> to_semver("1.2.3.04", 4)
+      "1.2.3-4"
+
+      iex> to_semver("1.2.3.004", 4)
+      "1.2.3-4"
+
+      iex> to_semver("1.2.3.4-05", 4)
+      "1.2.3-4-05"
+
+      iex> to_semver("1.2.3.0")
+      "1.2.3"
+
+      iex> to_semver("1.2.3.0", 4)
+      "1.2.3-0"
+
+      iex> to_semver("1.2.3-0")
+      "1.2.3"
+
+      iex> to_semver("1.2.3-0", 4)
+      "1.2.3-0"
   """
   @spec to_semver(version :: String.t(), parts :: integer) :: String.t()
   def to_semver(version, parts \\ 3)
@@ -127,12 +163,12 @@ defmodule UAInspector.Util.Version do
     case String.split(version, ".", parts: parts) do
       [maj] -> to_semver_string(maj, "0", "0", nil)
       [maj, min] -> to_semver_string(maj, min, "0", nil)
-      [maj, min, patch] -> to_semver_string(maj, min, patch, nil)
-      [maj, min, patch, pre] -> to_semver_string(maj, min, patch, pre)
+      [maj, min, patch] -> to_semver_string(maj, min, patch, nil, parts == 4)
+      [maj, min, patch, pre] -> to_semver_string(maj, min, patch, pre, parts == 4)
     end
   end
 
-  defp to_semver_string(major, minor, patch, pre) do
+  defp to_semver_string(major, minor, patch, pre, add_pre? \\ false) do
     version =
       case {Integer.parse(major), Integer.parse(minor), Integer.parse(patch)} do
         {:error, _, _} -> "0.0.0"
@@ -144,10 +180,39 @@ defmodule UAInspector.Util.Version do
         {{maj, _}, {min, _}, {patch, _}} -> "#{maj}.#{min}.#{patch}"
       end
 
-    if nil != pre do
+    if pre = add_pre? && build_pre(patch, pre) do
       version <> "-" <> pre
     else
       version
+    end
+  end
+
+  defp build_pre(patch, nil) do
+    case String.split(patch, "-", parts: 2) do
+      [_, pre] -> sanitize_pre(pre)
+      _ -> nil
+    end
+  end
+
+  defp build_pre(patch, dot_pre) do
+    if pre = build_pre(patch, nil) do
+      pre <> "." <> dot_pre
+    else
+      sanitize_pre(dot_pre)
+    end
+  end
+
+  defp sanitize_pre(nil) do
+    nil
+  end
+
+  defp sanitize_pre(pre) do
+    sanitized_pre = String.trim_leading(pre, "0")
+
+    if String.length(sanitized_pre) > 0 do
+      sanitized_pre
+    else
+      "0"
     end
   end
 
