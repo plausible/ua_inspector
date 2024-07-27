@@ -154,6 +154,12 @@ defmodule UAInspector.Util.Version do
 
       iex> to_semver("1.2.3-0", 4)
       "1.2.3-0"
+
+      iex> to_semver("110.0.0.0.0")
+      "110.0.0"
+
+      iex> to_semver("110.0.0.0.0", 4)
+      "110.0.0-0.0"
   """
   @spec to_semver(version :: String.t(), parts :: integer) :: String.t()
   def to_semver(version, parts \\ 3)
@@ -207,12 +213,16 @@ defmodule UAInspector.Util.Version do
   end
 
   defp sanitize_pre(pre) do
-    sanitized_pre = String.trim_leading(pre, "0")
+    pre
+    |> String.split(".")
+    |> Enum.map(&sanitize_pre_part/1)
+    |> Enum.join(".")
+  end
 
-    if String.length(sanitized_pre) > 0 do
-      sanitized_pre
-    else
-      "0"
+  defp sanitize_pre_part(str) do
+    case Integer.parse(str) do
+      {num, ""} -> to_string(num)
+      _ -> str
     end
   end
 
