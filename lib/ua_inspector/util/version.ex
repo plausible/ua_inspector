@@ -160,6 +160,18 @@ defmodule UAInspector.Util.Version do
 
       iex> to_semver("110.0.0.0.0", 4)
       "110.0.0-0.0"
+
+      iex> to_semver("110.0.0.0build.0", 4)
+      "110.0.0-0build.0"
+
+      iex> to_semver("110.0.0.0build.2pre", 4)
+      "110.0.0-0build.2pre"
+
+      iex> to_semver("110.0.0.05.006", 4)
+      "110.0.0-5.6"
+
+      iex> to_semver("110.0.0-05.006", 4)
+      "110.0.0-5.6"
   """
   @spec to_semver(version :: String.t(), parts :: integer) :: String.t()
   def to_semver(version, parts \\ 3)
@@ -202,7 +214,7 @@ defmodule UAInspector.Util.Version do
 
   defp build_pre(patch, dot_pre) do
     if pre = build_pre(patch, nil) do
-      pre <> "." <> dot_pre
+      pre <> "." <> sanitize_pre(dot_pre)
     else
       sanitize_pre(dot_pre)
     end
